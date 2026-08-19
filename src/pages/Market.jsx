@@ -41,7 +41,7 @@
 //     const results = await Promise.all(
 //       stocks.map(async (stock) => {
 //         const res = await axios.get(
-//           `http://localhost:5000/api/market/yahoo/${stock.yahoo}`
+//           `https://ai-trading-system-1t02.onrender.com/api/market/yahoo/${stock.yahoo}`
 //         );
 
 //         const quote = res.data.data;
@@ -158,7 +158,7 @@ export default function Market() {
       const results = await Promise.all(
         stocks.map(async (stock) => {
           const res = await axios.get(
-            `http://localhost:5000/api/market/yahoo/${stock.yahoo}`
+            `https://ai-trading-system-1t02.onrender.com/api/market/yahoo/${stock.yahoo}`
           );
 
           const quote = res.data.data;

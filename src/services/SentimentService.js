@@ -1,6 +1,6 @@
 export const getSentiment = async (coin) => {
   try {
-    const response = await fetch("http://localhost:5000/sentiment", {
+    const response = await fetch("https://ai-trading-system-1t02.onrender.com/sentiment", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

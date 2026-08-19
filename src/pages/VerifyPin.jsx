@@ -54,7 +54,7 @@ export default function VerifyPin() {
     try {
 
       const res = await fetch(
-        "http://localhost:5000/api/auth/verify-pin",
+        "https://ai-trading-system-1t02.onrender.com/api/auth/verify-pin",
         {
           method: "POST",
           headers: {

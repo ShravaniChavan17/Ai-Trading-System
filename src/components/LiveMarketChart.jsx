@@ -25,7 +25,7 @@ const LiveMarketChart = ({ symbol, title }) => {
         const yahooSymbol = convertToYahoo(symbol);
 
         const res = await axios.get(
-          `http://localhost:5000/api/history/${yahooSymbol}`
+          `https://ai-trading-system-1t02.onrender.com/api/history/${yahooSymbol}`
         );
 
         const formatted = res.data.map((c) => ({
@@ -45,7 +45,7 @@ const LiveMarketChart = ({ symbol, title }) => {
     loadHistory();
 
     // 2️⃣ Connect socket for live updates
-    socket = io("http://localhost:5000");
+    socket = io("https://ai-trading-system-1t02.onrender.com");
 
     socket.on("connect", () => {
       console.log("🟢 Socket connected");

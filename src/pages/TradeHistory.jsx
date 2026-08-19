@@ -19,7 +19,7 @@ export default function TradeHistory() {
   //     const email = localStorage.getItem("email");
 
   //     const res = await axios.get(
-  //       `http://localhost:5000/api/history/${email}`
+  //       `https://ai-trading-system-1t02.onrender.com/api/history/${email}`
   //     );
 
   //     setTrades(res.data);

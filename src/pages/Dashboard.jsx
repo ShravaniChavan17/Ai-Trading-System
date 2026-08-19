@@ -16,7 +16,7 @@ export default function Dashboard() {
 
       try {
         const res = await fetch(
-          "http://localhost:5000/api/auth/get-user",
+          "https://ai-trading-system-1t02.onrender.com/api/auth/get-user",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },

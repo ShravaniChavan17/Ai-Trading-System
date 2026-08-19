@@ -8,7 +8,7 @@ import axios from "axios";
 export default function SignupPage() {
 
   const navigate = useNavigate();
-  const API_URL = "http://localhost:5000";
+  const API_URL = "https://ai-trading-system-1t02.onrender.com";
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");

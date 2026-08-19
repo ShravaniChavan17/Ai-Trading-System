@@ -95,7 +95,7 @@
 
 //         try {
 //             const res = await fetch(
-//                 "http://localhost:5000/api/auth/verify-otp",
+//                 "https://ai-trading-system-1t02.onrender.com/api/auth/verify-otp",
 //                 {
 //                     method: "POST",
 //                     headers: {
@@ -135,7 +135,7 @@
 
 //         try {
 //             const res = await fetch(
-//                 "http://localhost:5000/api/auth/request-otp",
+//                 "https://ai-trading-system-1t02.onrender.com/api/auth/request-otp",
 //                 {
 //                     method: "POST",
 //                     headers: { "Content-Type": "application/json" },
@@ -372,7 +372,7 @@ export default function VerifyOtp() {
 
         try {
             const res = await fetch(
-                "http://localhost:5000/api/auth/verify-otp",
+                "https://ai-trading-system-1t02.onrender.com/api/auth/verify-otp",
                 {
                     method: "POST",
                     headers: {
@@ -419,7 +419,7 @@ export default function VerifyOtp() {
 
         try {
             const res = await fetch(
-                "http://localhost:5000/api/auth/request-otp",
+                "https://ai-trading-system-1t02.onrender.com/api/auth/request-otp",
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },

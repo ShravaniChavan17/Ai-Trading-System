@@ -31,7 +31,7 @@ router.get("/callback", async (req, res) => {
           client_secret: process.env.DIGILOCKER_CLIENT_SECRET,
 
           redirect_uri:
-          "http://localhost:5000/api/digilocker/callback"
+          "https://ai-trading-system-1t02.onrender.com/api/digilocker/callback"
 
         }),
         {

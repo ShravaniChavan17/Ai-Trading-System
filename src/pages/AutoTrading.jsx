@@ -233,7 +233,7 @@ function AutoTrading() {
       const results = await Promise.all(
         coins.map(async (coin) => {
           const res = await fetch(
-            `http://localhost:5000/api/news-signal/${coin}`
+            `https://ai-trading-system-1t02.onrender.com/api/news-signal/${coin}`
           );
 
           const data = await res.json();

@@ -1,6 +1,6 @@
 import axios from "axios"
 
-const API_URL = "http://localhost:5000/api/ai/predict"
+const API_URL = "https://ai-trading-system-1t02.onrender.com/api/ai/predict"
 
 export async function fetchPrediction(symbol, timeframe) {
 

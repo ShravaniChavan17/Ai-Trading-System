@@ -48,7 +48,7 @@
 //     try {
 
 //       const res = await fetch(
-//         "http://localhost:5000/api/auth/set-pin",
+//         "https://ai-trading-system-1t02.onrender.com/api/auth/set-pin",
 //         {
 //           method: "POST",
 //           headers: {
@@ -262,7 +262,7 @@ export default function SetPin() {
     try {
 
       const res = await fetch(
-        "http://localhost:5000/api/auth/set-pin",
+        "https://ai-trading-system-1t02.onrender.com/api/auth/set-pin",
         {
           method: "POST",
           headers: {

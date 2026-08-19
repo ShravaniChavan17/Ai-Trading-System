@@ -22,6 +22,7 @@ export default function LoginPage() {
       return;
     }
 
+    
     try {
 
       setLoading(true);
@@ -29,7 +30,7 @@ export default function LoginPage() {
       console.log("🔥 Calling API...");
 
       const res = await axios.post(
-        "http://localhost:5000/api/auth/request-otp",
+        "https://ai-trading-system-1t02.onrender.com/api/auth/request-otp",
         { email: email.toLowerCase().trim() }
       );
 

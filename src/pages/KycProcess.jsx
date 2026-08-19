@@ -78,7 +78,7 @@ export default function KycProcess() {
       form.append("selfieImage", selfie);
 
       const res = await axios.post(
-        "http://localhost:5000/api/kyc/upload",
+        "https://ai-trading-system-1t02.onrender.com/api/kyc/upload",
         form,
         {
           headers: {
