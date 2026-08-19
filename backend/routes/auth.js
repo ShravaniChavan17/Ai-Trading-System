@@ -6,90 +6,289 @@ import passport from "../config/passport.js";
 
 const router = express.Router();
 
-/* =========================
-   AUTH MIDDLEWARE (STEP 4)
-========================= */
+/* =====================================================
+   HELPER
+===================================================== */
+
+const normalizeEmail = (email) => {
+  return String(email || "").toLowerCase().trim();
+};
+
+/* =====================================================
+   AUTH MIDDLEWARE
+===================================================== */
+
 const authMiddleware = (req, res, next) => {
   try {
-    const token = req.headers.authorization;
+    const authHeader = req.headers.authorization;
 
-    if (!token) {
-      return res.status(401).json({ success: false, message: "No token" });
+    if (!authHeader) {
+      return res.status(401).json({
+        success: false,
+        message: "No token",
+      });
     }
 
-    const decoded = jwt.verify(token, "secret");
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : authHeader;
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || "secret"
+    );
 
     req.user = decoded;
 
     next();
-
   } catch (err) {
-    return res.status(401).json({ success: false, message: "Invalid token" });
+    console.error("AUTH MIDDLEWARE ERROR:", err);
+
+    return res.status(401).json({
+      success: false,
+      message: "Invalid token",
+    });
   }
 };
 
-/* =========================
-   REQUEST OTP
-========================= */
-router.post("/request-otp", async (req, res) => {
-  try {
-    const { email } = req.body;
+/* =====================================================
+   SIGNUP
+===================================================== */
 
-    if (!email) {
+router.post("/signup", async (req, res) => {
+  try {
+    const {
+      firstName,
+      lastName,
+      email,
+      password,
+    } = req.body;
+
+    if (
+      !firstName ||
+      !lastName ||
+      !email ||
+      !password
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Email is required"
+        message: "All fields are required",
       });
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedEmail = normalizeEmail(email);
 
-    let user = await User.findOne({ email: normalizedEmail });
+    /* -----------------------------------------------
+       CHECK DUPLICATE EMAIL
+    ------------------------------------------------ */
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const existingUser = await User.findOne({
+      email: normalizedEmail,
+    });
 
-    if (!user) {
-      user = new User({ email: normalizedEmail });
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "An account with this email already exists. Please login.",
+      });
     }
 
+    /* -----------------------------------------------
+       CREATE USER
+    ------------------------------------------------ */
+
+    const fullName = `${firstName.trim()} ${lastName.trim()}`;
+
+    const user = new User({
+      name: fullName,
+      email: normalizedEmail,
+      password,
+      isVerified: false,
+    });
+
+    /* -----------------------------------------------
+       GENERATE OTP
+    ------------------------------------------------ */
+
+    const otp = Math.floor(
+      100000 + Math.random() * 900000
+    ).toString();
+
     user.otp = otp;
-    user.otpExpiry = Date.now() + 5 * 60 * 1000;
+    user.otpExpiry =
+      Date.now() + 5 * 60 * 1000;
 
     await user.save();
 
+    /* -----------------------------------------------
+       SEND OTP
+    ------------------------------------------------ */
+
     await sendOTP(normalizedEmail, otp);
 
-    res.json({
+    console.log(
+      "✅ SIGNUP SUCCESS:",
+      normalizedEmail
+    );
+
+    res.status(201).json({
       success: true,
-      message: "OTP sent successfully"
+      message: "Signup successful. OTP sent.",
     });
 
   } catch (err) {
-    console.log("REQUEST OTP ERROR:", err);
-    res.status(500).json({ success: false });
+    console.error("SIGNUP ERROR:", err);
+
+    /* -----------------------------------------------
+       HANDLE MONGODB DUPLICATE KEY
+    ------------------------------------------------ */
+
+    if (err.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "An account with this email already exists. Please login.",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Signup failed. Please try again.",
+    });
   }
 });
 
-/* =========================
-   VERIFY OTP
-========================= */
-router.post("/verify-otp", async (req, res) => {
-  try {
-    const { email, otp } = req.body;
+/* =====================================================
+   REQUEST OTP
+===================================================== */
 
-    const user = await User.findOne({
-      email: email.toLowerCase().trim()
+router.post("/request-otp", async (req, res) => {
+  try {
+    const normalizedEmail = normalizeEmail(
+      req.body.email
+    );
+
+    if (!normalizedEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    let user = await User.findOne({
+      email: normalizedEmail,
     });
 
-    if (!user) return res.json({ success: false });
+    /* -----------------------------------------------
+       CREATE USER IF NOT EXISTS
+    ------------------------------------------------ */
 
-    if (!user.otp || user.otp !== otp) {
-      return res.json({ success: false, message: "Invalid OTP" });
+    if (!user) {
+      user = new User({
+        email: normalizedEmail,
+        isVerified: false,
+      });
     }
 
-    if (Date.now() > user.otpExpiry) {
-      return res.json({ success: false, message: "OTP expired" });
+    /* -----------------------------------------------
+       GENERATE OTP
+    ------------------------------------------------ */
+
+    const otp = Math.floor(
+      100000 + Math.random() * 900000
+    ).toString();
+
+    user.otp = otp;
+    user.otpExpiry =
+      Date.now() + 5 * 60 * 1000;
+
+    await user.save();
+
+    /* -----------------------------------------------
+       SEND OTP
+    ------------------------------------------------ */
+
+    await sendOTP(normalizedEmail, otp);
+
+    console.log(
+      "✅ OTP EMAIL SENT:",
+      normalizedEmail
+    );
+
+    return res.json({
+      success: true,
+      message: "OTP sent successfully",
+    });
+
+  } catch (err) {
+    console.error("REQUEST OTP ERROR:", err);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to send OTP",
+    });
+  }
+});
+
+/* =====================================================
+   VERIFY OTP
+===================================================== */
+
+router.post("/verify-otp", async (req, res) => {
+  try {
+    const normalizedEmail = normalizeEmail(
+      req.body.email
+    );
+
+    const { otp } = req.body;
+
+    if (!normalizedEmail || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and OTP are required",
+      });
     }
+
+    const user = await User.findOne({
+      email: normalizedEmail,
+    });
+
+    if (!user) {
+      return res.json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    /* -----------------------------------------------
+       CHECK OTP
+    ------------------------------------------------ */
+
+    if (!user.otp || user.otp !== String(otp)) {
+      return res.json({
+        success: false,
+        message: "Invalid OTP",
+      });
+    }
+
+    /* -----------------------------------------------
+       CHECK EXPIRY
+    ------------------------------------------------ */
+
+    if (
+      !user.otpExpiry ||
+      Date.now() > user.otpExpiry
+    ) {
+      return res.json({
+        success: false,
+        message: "OTP expired",
+      });
+    }
+
+    /* -----------------------------------------------
+       VERIFY USER
+    ------------------------------------------------ */
 
     user.isVerified = true;
     user.otp = null;
@@ -97,166 +296,310 @@ router.post("/verify-otp", async (req, res) => {
 
     await user.save();
 
-    res.json({
+    return res.json({
       success: true,
+      message: "OTP verified successfully",
       isPinSet: !!user.pin,
-      kycCompleted: user.kycCompleted || false
+      kycCompleted:
+        user.kycCompleted || false,
     });
 
   } catch (err) {
-    res.status(500).json({ success: false });
+    console.error("VERIFY OTP ERROR:", err);
+
+    return res.status(500).json({
+      success: false,
+      message: "OTP verification failed",
+    });
   }
 });
 
-/* =========================
+/* =====================================================
    SET PIN
-========================= */
+===================================================== */
+
 router.post("/set-pin", async (req, res) => {
   try {
-    const { email, pin } = req.body;
+    const normalizedEmail = normalizeEmail(
+      req.body.email
+    );
+
+    const { pin } = req.body;
+
+    if (!normalizedEmail || !pin) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and PIN are required",
+      });
+    }
 
     const user = await User.findOne({
-      email: email.toLowerCase().trim()
+      email: normalizedEmail,
     });
 
-    if (!user) return res.json({ success: false });
+    if (!user) {
+      return res.json({
+        success: false,
+        message: "User not found",
+      });
+    }
 
     user.pin = String(pin);
+
     await user.save();
 
-    res.json({
+    return res.json({
       success: true,
-      message: "PIN set successfully"
+      message: "PIN set successfully",
     });
 
   } catch (err) {
-    res.status(500).json({ success: false });
+    console.error("SET PIN ERROR:", err);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to set PIN",
+    });
   }
 });
 
-/* =========================
-   VERIFY PIN (LOGIN)  ✅ STEP 3
-========================= */
+/* =====================================================
+   VERIFY PIN
+===================================================== */
+
 router.post("/verify-pin", async (req, res) => {
   try {
-    const { email, pin } = req.body;
+    const normalizedEmail = normalizeEmail(
+      req.body.email
+    );
+
+    const { pin } = req.body;
+
+    if (!normalizedEmail || !pin) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and PIN are required",
+      });
+    }
 
     const user = await User.findOne({
-      email: email.toLowerCase().trim()
+      email: normalizedEmail,
     });
 
-    if (!user || user.pin !== String(pin)) {
-      return res.json({ success: false, message: "Invalid PIN" });
+    if (
+      !user ||
+      user.pin !== String(pin)
+    ) {
+      return res.json({
+        success: false,
+        message: "Invalid PIN",
+      });
     }
 
     const token = jwt.sign(
-      { id: user._id },
-      "secret",
-      { expiresIn: "7d" }
+      {
+        id: user._id,
+        email: user.email,
+      },
+      process.env.JWT_SECRET || "secret",
+      {
+        expiresIn: "7d",
+      }
     );
 
-    res.json({
+    return res.json({
       success: true,
+      message: "PIN verified successfully",
       token,
-      userId: user._id   // 🔥 useful for frontend
+      userId: user._id,
     });
 
   } catch (err) {
-    res.status(500).json({ success: false });
+    console.error("VERIFY PIN ERROR:", err);
+
+    return res.status(500).json({
+      success: false,
+      message: "PIN verification failed",
+    });
   }
 });
 
-/* =========================
+/* =====================================================
    COMPLETE KYC
-========================= */
+===================================================== */
+
 router.post("/complete-kyc", async (req, res) => {
   try {
-    const { email } = req.body;
+    const normalizedEmail = normalizeEmail(
+      req.body.email
+    );
+
+    if (!normalizedEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
 
     const user = await User.findOne({
-      email: email.toLowerCase().trim()
+      email: normalizedEmail,
     });
 
-    if (!user) return res.json({ success: false });
+    if (!user) {
+      return res.json({
+        success: false,
+        message: "User not found",
+      });
+    }
 
     user.kycCompleted = true;
+
     await user.save();
 
-    res.json({
-      success: true
+    return res.json({
+      success: true,
+      message: "KYC completed successfully",
     });
 
   } catch (err) {
-    res.status(500).json({ success: false });
+    console.error("COMPLETE KYC ERROR:", err);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to complete KYC",
+    });
   }
 });
 
-/* =========================
-   GET USER (OLD)
-========================= */
+/* =====================================================
+   GET USER
+===================================================== */
+
 router.post("/get-user", async (req, res) => {
   try {
-    const { email } = req.body;
+    const normalizedEmail = normalizeEmail(
+      req.body.email
+    );
+
+    if (!normalizedEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
 
     const user = await User.findOne({
-      email: email.toLowerCase().trim()
+      email: normalizedEmail,
     });
 
-    if (!user) return res.json({ success: false });
+    if (!user) {
+      return res.json({
+        success: false,
+        message: "User not found",
+      });
+    }
 
-    res.json({
-  success: true,
-  isVerified: user.isVerified || false,   // 🔥 ADD THIS
-  isPinSet: !!user.pin,
-  kycCompleted: user.kycCompleted || false,
-  name: user.name,
-  wallet: user.wallet
-});
+    return res.json({
+      success: true,
+      isVerified:
+        user.isVerified || false,
+      isPinSet: !!user.pin,
+      kycCompleted:
+        user.kycCompleted || false,
+      name: user.name,
+      wallet: user.wallet || 0,
+      email: user.email,
+    });
 
   } catch (err) {
-    res.status(500).json({ success: false });
+    console.error("GET USER ERROR:", err);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch user",
+    });
   }
 });
 
-/* =========================
-   🔥 GET CURRENT USER (STEP 4)
-========================= */
+/* =====================================================
+   GET CURRENT USER
+===================================================== */
+
 router.get("/me", authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(
+      req.user.id
+    ).select("-password");
 
-    res.json({
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.json({
       success: true,
-      user
+      user,
     });
 
   } catch (err) {
-    res.status(500).json({ success: false });
+    console.error("GET CURRENT USER ERROR:", err);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch current user",
+    });
   }
 });
 
+/* =====================================================
+   GOOGLE AUTH
+===================================================== */
 
-// ================= GOOGLE AUTH =================
-
-// Step 1: Start Google login
-router.get("/google", passport.authenticate("google", {
-  scope: ["profile", "email"]
-}));
-
-// Step 2: Google callback
+/* Start Google Login */
 router.get(
-  "/google/callback",
-  passport.authenticate("google", { failureRedirect: "/login" }),
-  async (req, res) => {
-
-    const user = req.user;
-
-    // ✅ redirect to frontend with data
-    const redirectURL = `http://localhost:5173/auth-success?email=${encodeURIComponent(user.email)}`;
-
-    res.redirect(redirectURL);
-  }
+  "/google",
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+  })
 );
 
+/* Google Callback */
+router.get(
+  "/google/callback",
+  passport.authenticate("google", {
+    failureRedirect:
+      "https://ai-trading-system-q6t5.vercel.app/login",
+  }),
+  async (req, res) => {
+    try {
+      const user = req.user;
+
+      if (!user || !user.email) {
+        return res.redirect(
+          "https://ai-trading-system-q6t5.vercel.app/login"
+        );
+      }
+
+      const redirectURL =
+        `https://ai-trading-system-q6t5.vercel.app/auth-success?email=${encodeURIComponent(
+          user.email
+        )}`;
+
+      return res.redirect(redirectURL);
+
+    } catch (err) {
+      console.error(
+        "GOOGLE CALLBACK ERROR:",
+        err
+      );
+
+      return res.redirect(
+        "https://ai-trading-system-q6t5.vercel.app/login"
+      );
+    }
+  }
+);
 
 export default router;

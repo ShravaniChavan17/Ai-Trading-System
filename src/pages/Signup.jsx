@@ -66,7 +66,7 @@ export default function SignupPage() {
         {
           firstName,
           lastName,
-          email,
+         email: email.toLowerCase().trim(),
           password
         }
       );
@@ -88,15 +88,25 @@ export default function SignupPage() {
       }
 
     } catch (err) {
+  console.error("SIGNUP ERROR:", err);
 
-      console.error("SIGNUP ERROR:", err);
+  if (err.response?.status === 409) {
+    setError(
+      "An account with this email already exists. Please login."
+    );
 
-      setError(
-        err.response?.data?.message ||
-        "Signup failed. Try again."
-      );
+    setTimeout(() => {
+      navigate("/login");
+    }, 2000);
 
-    } finally {
+    return;
+  }
+
+  setError(
+    err.response?.data?.message ||
+    "Signup failed. Try again."
+  );
+}finally {
       setLoading(false);
     }
 
