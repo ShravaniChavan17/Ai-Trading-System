@@ -1,26 +1,21 @@
-
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Lock } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function VerifyPin() {
-
   const navigate = useNavigate();
   const location = useLocation();
 
-  const queryEmail =
-    new URLSearchParams(location.search).get("email");
+  const queryEmail = new URLSearchParams(location.search).get("email");
 
-  const email =
-    queryEmail || localStorage.getItem("email");
+  const email = queryEmail || localStorage.getItem("email");
 
   const [pin, setPin] = useState(["", "", "", ""]);
   const [loading, setLoading] = useState(false);
 
   // ================= INPUT =================
   const handleChange = (value, index) => {
-
     if (!/^[0-9]?$/.test(value)) return;
 
     const newPin = [...pin];
@@ -34,7 +29,6 @@ export default function VerifyPin() {
 
   // ================= VERIFY PIN =================
   const handleVerifyPin = async (e) => {
-
     e.preventDefault();
 
     const enteredPin = pin.join("");
@@ -52,45 +46,55 @@ export default function VerifyPin() {
     setLoading(true);
 
     try {
-
       const res = await fetch(
         "https://ai-trading-system-1t02.onrender.com/api/auth/verify-pin",
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             email,
-            pin: enteredPin
-          })
+            pin: enteredPin,
+          }),
         }
       );
 
-     const data = await res.json();
-    
+      const data = await res.json();
+
       console.log("VERIFY PIN RESPONSE:", data);
 
+      // ================= PIN ERROR =================
       if (!res.ok || !data.success) {
         alert(data.message || "Wrong PIN");
         setLoading(false);
         return;
       }
 
-      // ✅ STORE TOKEN (OPTIONAL)
-      localStorage.setItem("token", data.token);
+      // ================= SAVE LOGIN DATA =================
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+      }
 
-      // 🔥 FINAL STEP
-      navigate("/dashboard");
+      localStorage.setItem("email", email);
+
+      if (data.userId) {
+        localStorage.setItem("userId", data.userId);
+      }
+
+      console.log("✅ PIN verified successfully");
+      console.log("✅ Login successful");
+      console.log("➡️ Going to dashboard");
+
+      // ================= FINAL STEP =================
+      navigate("/dashboard/overview");
 
     } catch (err) {
-
       console.error("VERIFY PIN ERROR:", err);
       alert("Server error. Try again.");
-
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -102,22 +106,37 @@ export default function VerifyPin() {
       {/* Glow Effects */}
       <motion.div
         initial={{ opacity: 0.4 }}
-        animate={{ opacity: [0.4, 0.7, 0.4], scale: [1, 1.05, 1] }}
-        transition={{ repeat: Infinity, duration: 10 }}
+        animate={{
+          opacity: [0.4, 0.7, 0.4],
+          scale: [1, 1.05, 1],
+        }}
+        transition={{
+          repeat: Infinity,
+          duration: 10,
+        }}
         className="absolute top-0 right-0 w-[450px] h-[450px] bg-gradient-to-tr from-blue-600/40 to-cyan-400/30 blur-[150px] rounded-full"
       />
 
       <motion.div
         initial={{ opacity: 0.3 }}
-        animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.05, 1] }}
-        transition={{ repeat: Infinity, duration: 12 }}
+        animate={{
+          opacity: [0.3, 0.6, 0.3],
+          scale: [1, 1.05, 1],
+        }}
+        transition={{
+          repeat: Infinity,
+          duration: 12,
+        }}
         className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-cyan-500/25 to-blue-700/25 blur-[160px] rounded-full"
       />
 
       {/* Header */}
       <div className="flex items-center mb-8 z-10">
         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-cyan-500 mr-2"></div>
-        <h1 className="text-2xl font-semibold">Invsto</h1>
+
+        <h1 className="text-2xl font-semibold">
+          Invsto
+        </h1>
       </div>
 
       {/* Card */}
@@ -125,6 +144,7 @@ export default function VerifyPin() {
 
         {/* Icon */}
         <div className="flex flex-col items-center mb-6">
+
           <div className="p-4 rounded-full bg-gradient-to-r from-cyan-400 to-blue-600 mb-4">
             <Lock className="text-white w-7 h-7" />
           </div>
@@ -136,12 +156,14 @@ export default function VerifyPin() {
           <p className="text-gray-300 text-sm mb-6">
             Enter your 4-digit PIN to continue
           </p>
+
         </div>
 
         {/* FORM */}
         <form onSubmit={handleVerifyPin}>
 
           <div className="flex justify-center space-x-6 mb-8">
+
             {pin.map((digit, i) => (
               <input
                 key={i}
@@ -155,6 +177,7 @@ export default function VerifyPin() {
                 className="w-12 h-12 text-center text-2xl text-cyan-400 border-b-2 border-cyan-400 bg-transparent"
               />
             ))}
+
           </div>
 
           <button
@@ -169,17 +192,23 @@ export default function VerifyPin() {
 
         {/* Logout */}
         <div className="mt-8 text-sm text-gray-300">
+
           <button
-            onClick={() => navigate("/login")}
+            onClick={() => {
+              localStorage.removeItem("token");
+              localStorage.removeItem("email");
+              localStorage.removeItem("userId");
+
+              navigate("/login");
+            }}
             className="text-cyan-400 hover:underline"
           >
             Logout
           </button>
+
         </div>
 
       </div>
     </div>
   );
 }
-
-
