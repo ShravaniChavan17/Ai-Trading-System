@@ -330,7 +330,7 @@ export default function Overview() {
 
         const results = await Promise.all(
           coins.map(c =>
-            axios.get(`http://localhost:5001/api/ai/predict/${c}`)
+            axios.get(`https://ai-trading-system-1t02.onrender.com/api/ai/predict/${c}`)
           )
         );
 

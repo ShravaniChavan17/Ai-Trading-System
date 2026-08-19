@@ -22,7 +22,7 @@
 
 //   // FETCH NEWS (🔥 UPDATED WITH SORTING)
 //   useEffect(() => {
-//     fetch(`http://localhost:5001/api/news-signal/${stock}?t=${Date.now()}`)
+//     fetch(`https://ai-trading-system-1t02.onrender.com/api/news-signal/${stock}?t=${Date.now()}`)
 //       .then(res => res.json())
 //       .then(data => {
 //         const sorted = data.sort((a, b) => {

@@ -12,7 +12,7 @@
 //       setLoading(true);
 
 //       const res = await fetch(
-//         `http://localhost:5001/api/ai/predict/${symbol}?t=${Date.now()}`
+//         `https://ai-trading-system-1t02.onrender.com/api/ai/predict/${symbol}?t=${Date.now()}`
 //       );
 
 //       const json = await res.json();

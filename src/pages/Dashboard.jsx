@@ -95,18 +95,17 @@ export default function Dashboard() {
       0
     );
 
-    
-
-    setUser(prev => ({
-      ...prev,
-      balance: savedWallet,
-      invested,
-      profit,
-      todayProfit: profit * 0.1,
-    }));
-
-
     const profit = currentValue - invested;
+
+setUser(prev => ({
+  ...prev,
+  balance: savedWallet,
+  invested,
+  profit,
+  todayProfit: profit * 0.1
+}));
+
+    
 
     setUser(prev => ({
       ...prev,
@@ -128,7 +127,7 @@ export default function Dashboard() {
       const results = await Promise.all(
         coins.map(async (coin) => {
           const res = await axios.get(
-            `http://localhost:5001/api/ai/predict/${coin}?t=${Date.now()}`
+            `https://ai-trading-system-1t02.onrender.com/api/ai/predict/${coin}?t=${Date.now()}`
           );
 
           return res.data.data || res.data;
@@ -237,29 +236,37 @@ export default function Dashboard() {
                     </tr>
                   </thead>
 
-                  <tbody>
-                    {aiData.map((item, index) => (
-                      <tr key={index} style={{ textAlign: "center" }}>
-                        <td style={styles.td}>{item.stock.replace("-USD", "")}</td>
+                 <tbody>
+  {aiData.map((item, index) => (
+    <tr key={index} style={{ textAlign: "center" }}>
 
-                        <td style={styles.td}>
-                          <span style={{
-                            color:
-                              item.signal === "BUY"
-                                ? "#22c55e"
-                                : item.signal === "SELL"
-                                  ? "#ef4444"
-                                  : "#facc15",
-                            fontWeight: "bold"
-                          }}>
-                            {item.signal}
-                          </span>
-                        </td>
+      <td style={styles.td}>
+        {(item?.stock || item?.symbol || item?.coin || "Unknown").replace("-USD", "")}
+      </td>
 
-                        <td style={styles.td}>{item.confidence}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
+      <td style={styles.td}>
+        <span
+          style={{
+            color:
+              item?.signal === "BUY"
+                ? "#22c55e"
+                : item?.signal === "SELL"
+                  ? "#ef4444"
+                  : "#facc15",
+            fontWeight: "bold"
+          }}
+        >
+          {item?.signal || "HOLD"}
+        </span>
+      </td>
+
+      <td style={styles.td}>
+        {item?.confidence ?? 0}%
+      </td>
+
+    </tr>
+  ))}
+</tbody>
                 </table>
               </div>
             )}

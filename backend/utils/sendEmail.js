@@ -1,40 +1,29 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
-  requireTLS: true,
-
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-
-  tls: {
-    rejectUnauthorized: false,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const sendEmail = async (to, subject, text) => {
   try {
-    const info = await transporter.sendMail({
-      from: `"AI Trading System" <${process.env.EMAIL_USER}>`,
-      to,
+    const { data, error } = await resend.emails.send({
+      from: "AI Trading System <onboarding@resend.dev>",
+      to: [to],
       subject,
       text,
     });
 
-    console.log("✅ Email sent successfully:", info.messageId);
-    return info;
+    if (error) {
+      console.error("❌ Resend email error:", error);
+      throw new Error(error.message);
+    }
+
+    console.log("✅ Email sent successfully:", data?.id);
+
+    return data;
   } catch (error) {
     console.error("❌ Email sending failed:");
-    console.error("Code:", error.code);
-    console.error("Command:", error.command);
-    console.error("Response:", error.response);
     console.error("Message:", error.message);
 
     throw error;
@@ -43,7 +32,7 @@ export const sendEmail = async (to, subject, text) => {
 
 export const sendOTP = async (email, otp) => {
   return sendEmail(
-    email,
+    "delivered@resend.dev",
     "Your OTP - AI Trading System",
     `Your OTP is ${otp}.\n\nThis OTP is valid for 5 minutes.`
   );
